@@ -1,10 +1,14 @@
 import asyncio
-from typing import Any, Coroutine
+from collections.abc import Coroutine
+import logging
+from typing import Any
 
 import aiohttp
 
+type PostResponse = dict[str, Any] | None
 
-type PostResponse = dict[str, Any]
+
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 MAX_POST_ID: int = 100
@@ -17,22 +21,23 @@ async def fetch_post(
     session: aiohttp.ClientSession,
     post_id: int,
     semaphore: asyncio.Semaphore
-) -> PostResponse | None:
+) -> PostResponse:
     async with semaphore:
+        logger.info("Начинаем загрузку поста %s", post_id)
+
         url: str = f"{BASE_URL}/{post_id}"
 
         try:
             async with session.get(url, allow_redirects=True) as response:
                 response.raise_for_status()
                 return await response.json()
-        except (
-            asyncio.TimeoutError,
-            aiohttp.ClientError,
-            ValueError
-        ) as exc:
-            pass
-        finally:
-            pass
+        except (TimeoutError, aiohttp.ClientError, ValueError) as exc:
+            logger.exception(
+                "Ошибка при загрузке поста %s: %s",
+                post_id, exc
+            )
+
+            return None
 
 
 async def fetch_all_posts() -> list[PostResponse] | None:
@@ -40,7 +45,7 @@ async def fetch_all_posts() -> list[PostResponse] | None:
     timeout: aiohttp.ClientTimeout = aiohttp.ClientTimeout(TIMEOUT)
 
     async with aiohttp.ClientSession(timeout=timeout) as session:
-        tasks: list[Coroutine[Any, Any, PostResponse | None]] = [
+        tasks: list[Coroutine[Any, Any, PostResponse]] = [
             fetch_post(session, post_id, semaphore)
             for post_id in range(1, MAX_POST_ID)
         ]
