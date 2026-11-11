@@ -6,6 +6,9 @@ dist/
 wheels/
 *.egg-info
 
+# Tools
+.ruff_cache
+
 # Virtual environments
 .venv/
 
@@ -16,7 +19,7 @@ wheels/
 !.env.example
 
 # Logs
-*/.log
+*.log
 
 # IDEs / editors
 .vscode/
