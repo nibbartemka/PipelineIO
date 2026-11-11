@@ -19,7 +19,7 @@ wheels/
 !.env.example
 
 # Logs
-*/.log
+*.log
 
 # IDEs / editors
 .vscode/
