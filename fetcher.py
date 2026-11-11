@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import Coroutine
+from contextlib import suppress
 import logging
 from typing import Any
 
@@ -45,14 +46,30 @@ async def fetch_post(
             return None
 
 
+async def progress_monitor():
+    while True:
+        logger.info("Загрузка постов продолжается...")
+        await asyncio.sleep(2)
+
+
 async def fetch_all_posts() -> list[PostData] | None:
     semaphore: asyncio.Semaphore = asyncio.Semaphore(MAX_CONNECTIONS)
     timeout: aiohttp.ClientTimeout = aiohttp.ClientTimeout(TIMEOUT)
 
     async with aiohttp.ClientSession(timeout=timeout) as session:
+        monitor_task = asyncio.create_task(
+            progress_monitor(),
+            name="fetch-progress-monitor",
+        )
+
         tasks: list[Coroutine[Any, Any, PostData | None]] = [
             fetch_post(session, post_id, semaphore)
             for post_id in range(1, MAX_POST_ID + 1)
         ]
 
-        return await asyncio.gather(*tasks)
+        try:
+            return await asyncio.gather(*tasks)
+        finally:
+            monitor_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await monitor_task
