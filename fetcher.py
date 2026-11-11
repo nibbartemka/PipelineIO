@@ -52,7 +52,7 @@ async def fetch_all_posts() -> list[PostData] | None:
     async with aiohttp.ClientSession(timeout=timeout) as session:
         tasks: list[Coroutine[Any, Any, PostData | None]] = [
             fetch_post(session, post_id, semaphore)
-            for post_id in range(1, MAX_POST_ID)
+            for post_id in range(1, MAX_POST_ID + 1)
         ]
 
         return await asyncio.gather(*tasks)
